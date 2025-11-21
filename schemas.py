@@ -1,48 +1,53 @@
 """
-Database Schemas
+Database Schemas for Bank Management System
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model maps to a MongoDB collection. Collection name is the
+lowercase of the class name.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
 
-class User(BaseModel):
+class Customer(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Customers collection schema
+    Collection: "customer"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    full_name: str = Field(..., description="Customer full name")
+    email: EmailStr = Field(..., description="Unique email address")
+    phone: Optional[str] = Field(None, description="Phone number")
+    address: Optional[str] = Field(None, description="Postal address")
+    is_active: bool = Field(True, description="Whether the customer is active")
 
-class Product(BaseModel):
+
+class Account(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Accounts collection schema
+    Collection: "account"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    customer_id: str = Field(..., description="Owner customer _id as string")
+    account_type: Literal["checking", "savings"] = Field(
+        ..., description="Type of bank account"
+    )
+    balance: float = Field(0.0, ge=0, description="Current account balance")
+    currency: Literal["USD", "EUR", "GBP", "INR", "JPY", "AUD"] = Field(
+        "USD", description="Currency code"
+    )
+    nickname: Optional[str] = Field(None, description="Optional account nickname")
 
-# Add your own schemas here:
-# --------------------------------------------------
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Transaction(BaseModel):
+    """
+    Transactions collection schema
+    Collection: "transaction"
+    """
+    account_id: str = Field(..., description="Primary account _id as string")
+    tx_type: Literal["deposit", "withdraw", "transfer"]
+    amount: float = Field(..., gt=0, description="Transaction amount (positive)")
+    currency: str = Field("USD", description="Currency code")
+    note: Optional[str] = Field(None, description="Optional memo")
+    # For transfers
+    to_account_id: Optional[str] = Field(None, description="Destination account _id")
+    occurred_at: Optional[datetime] = Field(None, description="When the transaction occurred")
